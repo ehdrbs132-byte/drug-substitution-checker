@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>의약품 대체조제 조회 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --primary: #2d5be3;
+  --primary-light: #e8eefb;
+  --text: #1a1d26;
+  --text-sub: #6b7280;
+  --border: #e2e5ed;
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --badge-new: #7c3aed;
+  --badge-generic: #2563eb;
+  --badge-data: #d97706;
+  --badge-delegate: #0891b2;
+  --badge-unknown: #6b7280;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.08);
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.header p {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 6px;
+}
+
+/* Stepper */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.step-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600;
+  background: var(--border);
+  color: var(--text-sub);
+  transition: all .3s;
+}
+.step-circle.active {
+  background: var(--primary);
+  color: #fff;
+}
+.step-circle.done {
+  background: var(--success);
+  color: #fff;
+}
+.step-label {
+  font-size: 13px;
+  color: var(--text-sub);
+  font-weight: 500;
+  transition: color .3s;
+}
+.step-label.active { color: var(--primary); font-weight: 600; }
+.step-label.done { color: var(--success); }
+.step-line {
+  width: 40px; height: 2px;
+  background: var(--border);
+  margin: 0 12px;
+  transition: background .3s;
+}
+.step-line.done { background: var(--success); }
+
+/* Search */
+.search-box {
+  position: relative;
+  margin-bottom: 16px;
+}
+.search-box input {
+  width: 100%;
+  padding: 14px 48px 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--card);
+  transition: border-color .2s;
+  outline: none;
+}
+.search-box input:focus {
+  border-color: var(--primary);
+}
+.search-box input::placeholder {
+  color: #b0b5c0;
+}
+.search-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-sub);
+}
+
+/* Results */
+.results-area {
+  min-height: 200px;
+}
+.results-count {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+.drug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.drug-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--card);
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all .15s;
+}
+.drug-item:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+.drug-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.drug-code {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+.badge-신약 { background: #ede9fe; color: var(--badge-new); }
+.badge-후발제네릭 { background: #dbeafe; color: var(--badge-generic); }
+.badge-자료제출의약품 { background: #fef3c7; color: var(--badge-data); }
+.badge-위임제네릭 { background: #cffafe; color: var(--badge-delegate); }
+.badge-분류불가 { background: #f3f4f6; color: var(--badge-unknown); }
+.paired-info {
+  font-size: 11px;
+  color: #d97706;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+/* Selected drug card */
+.selected-card {
+  background: var(--card);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow);
+}
+.selected-card .label {
+  font-size: 11px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.selected-card .drug-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+.btn-change {
+  font-size: 12px;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.btn-change:hover { background: #d4defc; }
+
+/* Result panel */
+.result-panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  margin-top: 20px;
+  animation: slideUp .3s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.result-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 28px;
+}
+.result-icon.ok { background: var(--success-bg); }
+.result-icon.no { background: var(--danger-bg); }
+.result-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.result-title.ok { color: var(--success); }
+.result-title.no { color: var(--danger); }
+.result-desc {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+.result-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+  font-size: 13px;
+}
+.result-pair .pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 500;
+  background: #f3f4f6;
+}
+.result-pair .arrow {
+  color: var(--text-sub);
+  font-size: 18px;
+}
+
+/* Buttons */
+.btn-reset {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-reset:hover { background: #2249c4; }
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--text-sub);
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-sub);
+  font-size: 14px;
+}
+
+/* More results */
+.btn-more {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-more:hover { background: #d4defc; }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 24px 0;
+  font-size: 11px;
+  color: #b0b5c0;
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <div class="loading" id="loading-screen">
+    <div class="spinner"></div>
+    <p>의약품 데이터를 불러오는 중...</p>
+  </div>
+</div>
+
+<script>
+// ─── Data Loading ───
+let DATA_A = {};       // 생동성인정품목: {code: name}
+let B_JASA = {};       // 제네릭묶음 자사 lookup: {code: [rows]}
+let B_WITAK = {};      // 제네릭묶음 위탁 lookup: {code: [rows]}
+let DATA_C = {};       // 대조약: {code: name}
+let DATA_D = [];       // 허가상세: [{c,n}]
+let A_PREFIXES = {};   // 파일a prefix index
+let A_CODE_SET = null; // Set for fast lookup
+let DEL_PREFIXES = {}; // 위임제네릭 prefix index
+
+async function loadData() {
+  const [a, bj, bw, c, d, ap, dp] = await Promise.all([
+    fetch('data/data_a.json').then(r => r.json()),
+    fetch('data/data_b_jasa.json').then(r => r.json()),
+    fetch('data/data_b_witak.json').then(r => r.json()),
+    fetch('data/data_c.json').then(r => r.json()),
+    fetch('data/data_d.json').then(r => r.json()),
+    fetch('data/data_a_prefixes.json').then(r => r.json()),
+    fetch('data/data_delegate_prefixes.json').then(r => r.json()),
+  ]);
+  DATA_A = a;
+  B_JASA = bj;
+  B_WITAK = bw;
+  DATA_C = c;
+  DATA_D = d;
+  A_PREFIXES = ap;
+  A_CODE_SET = new Set(Object.keys(DATA_A));
+  DEL_PREFIXES = dp;
+}
+
+// ─── Classification Logic ───
+function extractPrefix(name) {
+  if (!name) return '';
+  const cleaned = name.replace(/\(.*?\)/g, '').trim();
+  const m = cleaned.match(/^[가-힣]+/);
+  return m ? m[0] : '';
+}
+
+function classifyDrug(code, name) {
+  // Step 1: 파일c → 신약
+  if (DATA_C[code]) return '신약';
+
+  // Step 2: 파일a → 후발제네릭
+  if (A_CODE_SET.has(code)) return '후발제네릭';
+
+  // Step 3: prefix search in 파일a
+  const prefix = extractPrefix(name);
+  if (prefix && A_PREFIXES[prefix]) return '후발제네릭';
+
+  // Step 4: 파일b search (O(1) lookup)
+  if (B_JASA[code]) return '자료제출의약품';  // 자사 열에서 발견
+
+  const witakRows = B_WITAK[code];
+  if (witakRows) {
+    // 위탁 열에서 발견 → 자사의 정체 확인
+    const row = witakRows[0];
+    if (A_CODE_SET.has(row.jc)) return '후발제네릭';
+    const jPrefix = extractPrefix(row.jn);
+    if (jPrefix && A_PREFIXES[jPrefix]) return '후발제네릭';
+    return '위임제네릭';
+  }
+
+  // Step 5: 분류불가 → 위임제네릭 prefix 재확인
+  const delPrefix = extractPrefix(name);
+  if (delPrefix && DEL_PREFIXES[delPrefix]) return '위임제네릭';
+
+  return '분류불가';
+}
+
+// ─── [신규] 위임제네릭의 짝 자료제출의약품 찾기 ───
+function getPairedDataDrug(code, name) {
+  // Case A: B_WITAK에서 직접 발견된 위임제네릭
+  const witakRows = B_WITAK[code];
+  if (witakRows && witakRows.length > 0) {
+    return witakRows[0].jn;
+  }
+  // Case B: Step 5.5 prefix 매칭으로 위임제네릭이 된 경우
+  const prefix = extractPrefix(name);
+  if (prefix) {
+    for (const wCode in B_WITAK) {
+      const rows = B_WITAK[wCode];
+      if (extractPrefix(rows[0].wn) === prefix) {
+        return rows[0].jn;
+      }
+    }
+  }
+  return null;
+}
+
+// ─── 위임제네릭의 짝 자료제출의약품 코드 찾기 ───
+function getPairedDataDrugCode(code, name) {
+  const witakRows = B_WITAK[code];
+  if (witakRows && witakRows.length > 0) {
+    return witakRows[0].jc;
+  }
+  const prefix = extractPrefix(name);
+  if (prefix) {
+    for (const wCode in B_WITAK) {
+      const rows = B_WITAK[wCode];
+      if (extractPrefix(rows[0].wn) === prefix) {
+        return rows[0].jc;
+      }
+    }
+  }
+  return null;
+}
+
+// ─── Substitution Logic ───
+function canSubstitute(cat1, cat2) {
+  const ok = [
+    ['신약', '후발제네릭'],
+    ['후발제네릭', '신약'],
+    ['후발제네릭', '후발제네릭'],
+    ['자료제출의약품', '위임제네릭'],
+    ['위임제네릭', '자료제출의약품'],
+    ['위임제네릭', '위임제네릭'],
+  ];
+  return ok.some(([a, b]) => a === cat1 && b === cat2);
+}
+
+// ─── Search ───
+function searchDrugs(query) {
+  if (!query || query.length < 1) return [];
+  const q = query.trim().toLowerCase();
+  const results = [];
+  for (const item of DATA_D) {
+    if (item.n.toLowerCase().includes(q)) {
+      results.push(item);
+      if (results.length >= 200) break;
+    }
+  }
+  return results;
+}
+
+// ─── App State ───
+let state = {
+  step: 1,
+  prescription: null,   // {code, name, category}
+  substitute: null,
+  searchQuery: '',
+};
+
+// ─── Rendering ───
+const app = document.getElementById('app');
+
+function render() {
+  const s = state;
+  let html = '';
+
+  // Header
+  html += `
+    <div class="header">
+      <h1>💊 의약품 대체조제 조회 시스템</h1>
+      <p>처방약과 대체조제약의 교체 가능 여부를 확인합니다</p>
+    </div>
+  `;
+
+  // Stepper
+  const s1Active = s.step === 1;
+  const s1Done = s.step > 1;
+  const s2Active = s.step === 2;
+  const s2Done = s.step > 2;
+  const s3Active = s.step === 3;
+  html += `
+    <div class="stepper">
+      <div class="step-item">
+        <div class="step-circle ${s1Done ? 'done' : s1Active ? 'active' : ''}">${s1Done ? '✓' : '1'}</div>
+        <span class="step-label ${s1Done ? 'done' : s1Active ? 'active' : ''}">처방약</span>
+      </div>
+      <div class="step-line ${s1Done ? 'done' : ''}"></div>
+      <div class="step-item">
+        <div class="step-circle ${s2Done ? 'done' : s2Active ? 'active' : ''}">${s2Done ? '✓' : '2'}</div>
+        <span class="step-label ${s2Done ? 'done' : s2Active ? 'active' : ''}">대체조제약</span>
+      </div>
+      <div class="step-line ${s2Done ? 'done' : ''}"></div>
+      <div class="step-item">
+        <div class="step-circle ${s3Active ? 'active' : ''}">3</div>
+        <span class="step-label ${s3Active ? 'active' : ''}">결과</span>
+      </div>
+    </div>
+  `;
+
+  // Step 1: Search prescription drug
+  if (s.step === 1) {
+    html += renderSearchStep('처방약을 검색하세요', '예: 아토젯, 리피토, 크레스토...');
+  }
+
+  // Step 2: Selected prescription + Search substitute
+  if (s.step === 2) {
+    html += renderSelectedCard('처방약', s.prescription);
+    html += renderSearchStep('대체조제약을 검색하세요', '대체하고 싶은 약을 검색하세요');
+  }
+
+  // Step 3: Result
+  if (s.step === 3) {
+    html += renderSelectedCard('처방약', s.prescription);
+    html += renderSelectedCard('대체조제약', s.substitute);
+    html += renderResult();
+  }
+
+  // Footer
+  html += `<div class="footer">의약품 대체조제 조회 시스템 v1.3</div>`;
+
+  app.innerHTML = html;
+
+  // Bind events
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', onSearch);
+    searchInput.focus();
+    searchInput.value = state.searchQuery;
+  }
+}
+
+function renderSearchStep(title, placeholder) {
+  let html = `
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="${placeholder}" autocomplete="off">
+      <span class="search-icon">🔍</span>
+    </div>
+  `;
+
+  if (!state.searchQuery || state.searchQuery.length < 1) {
+    html += `<div class="empty">약품명을 입력하면 검색 결과가 표시됩니다</div>`;
+  } else {
+    const results = searchDrugs(state.searchQuery);
+    if (results.length === 0) {
+      html += `<div class="empty">검색 결과가 없습니다</div>`;
+    } else {
+      const showCount = Math.min(results.length, state.showCount || 30);
+      html += `<div class="results-count">검색 결과 ${results.length}건${results.length > showCount ? ` (${showCount}건 표시 중)` : ''}</div>`;
+      html += `<div class="drug-list">`;
+      for (let i = 0; i < showCount; i++) {
+        const item = results[i];
+        const cat = classifyDrug(item.c, item.n);
+        let pairedHtml = '';
+        if (cat === '위임제네릭') {
+          const paired = getPairedDataDrug(item.c, item.n);
+          if (paired) {
+            pairedHtml = `<div class="paired-info">↳ 자료제출: ${paired}</div>`;
+          }
+        }
+        html += `
+          <div class="drug-item" onclick="selectDrug('${item.c}')">
+            <div>
+              <div class="drug-name">${highlightMatch(item.n, state.searchQuery)}</div>
+              <div class="drug-code">${item.c}</div>
+              ${pairedHtml}
+            </div>
+            <span class="badge badge-${cat}">${cat}</span>
+          </div>
+        `;
+      }
+      html += `</div>`;
+      if (results.length > showCount) {
+        html += `<button class="btn-more" onclick="showMore()">더 보기 (${results.length - showCount}건 남음)</button>`;
+      }
+    }
+  }
+  return html;
+}
+
+function highlightMatch(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + query.length);
+  const after = text.slice(idx + query.length);
+  return `${before}<strong style="color:var(--primary)">${match}</strong>${after}`;
+}
+
+function renderSelectedCard(label, drug) {
+  let pairedHtml = '';
+  if (drug.category === '위임제네릭' && drug.paired) {
+    pairedHtml = `<div class="paired-info">↳ 자료제출: ${drug.paired}</div>`;
+  }
+  return `
+    <div class="selected-card">
+      <div>
+        <div class="label">${label}</div>
+        <div class="drug-name">${drug.name}</div>
+        ${pairedHtml}
+        <div style="margin-top:4px"><span class="badge badge-${drug.category}">${drug.category}</span></div>
+      </div>
+      ${state.step < 3 ? `<button class="btn-change" onclick="goBack()">변경</button>` : ''}
+    </div>
+  `;
+}
+
+function renderResult() {
+  const p = state.prescription;
+  const s = state.substitute;
+  let ok = canSubstitute(p.category, s.category);
+
+  // 위임제네릭끼리는 같은 자료제출의약품일 때만 대체조제 가능
+  let samePairFail = false;
+  if (ok && p.category === '위임제네릭' && s.category === '위임제네릭') {
+    if (!p.pairedCode || !s.pairedCode || p.pairedCode !== s.pairedCode) {
+      ok = false;
+      samePairFail = true;
+    }
+  }
+
+  // 자료제출의약품↔위임제네릭은 커플링된 쌍일 때만 대체조제 가능
+  let crossPairFail = false;
+  if (ok) {
+    if (p.category === '자료제출의약품' && s.category === '위임제네릭') {
+      if (!s.pairedCode || s.pairedCode !== p.code) {
+        ok = false;
+        crossPairFail = true;
+      }
+    } else if (p.category === '위임제네릭' && s.category === '자료제출의약품') {
+      if (!p.pairedCode || p.pairedCode !== s.code) {
+        ok = false;
+        crossPairFail = true;
+      }
+    }
+  }
+
+  let descHtml;
+  if (ok) {
+    descHtml = `<strong>${p.name}</strong>을(를)<br><strong>${s.name}</strong>(으)로 대체조제할 수 있습니다.`;
+  } else if (samePairFail) {
+    descHtml = `두 약 모두 <strong>위임제네릭</strong>이지만,<br>서로 다른 자료제출의약품 기반이므로<br>대체조제가 허용되지 않습니다.`;
+  } else if (crossPairFail) {
+    descHtml = `<strong>자료제출의약품</strong>과 <strong>위임제네릭</strong>이지만,<br>서로 커플링된 관계가 아니므로<br>대체조제가 허용되지 않습니다.`;
+  } else {
+    descHtml = `<strong>${p.category}</strong>과(와) <strong>${s.category}</strong> 간에는<br>대체조제가 허용되지 않습니다.`;
+  }
+
+  return `
+    <div class="result-panel">
+      <div class="result-icon ${ok ? 'ok' : 'no'}">${ok ? '✅' : '❌'}</div>
+      <div class="result-title ${ok ? 'ok' : 'no'}">
+        대체조제 ${ok ? '가능' : '불가'}
+      </div>
+      <div class="result-pair">
+        <span class="pill">${p.category}</span>
+        <span class="arrow">↔</span>
+        <span class="pill">${s.category}</span>
+      </div>
+      <div class="result-desc">${descHtml}</div>
+      <button class="btn-reset" onclick="resetAll()">처음으로 돌아가기</button>
+    </div>
+  `;
+}
+
+// ─── Event Handlers ───
+let searchTimeout = null;
+
+function onSearch(e) {
+  const val = e.target.value;
+  state.searchQuery = val;
+  state.showCount = 30;
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => render(), 150);
+}
+
+function selectDrug(code) {
+  const item = DATA_D.find(d => d.c === code);
+  if (!item) return;
+  const cat = classifyDrug(item.c, item.n);
+  const drug = { code: item.c, name: item.n, category: cat };
+  if (cat === '위임제네릭') {
+    drug.paired = getPairedDataDrug(item.c, item.n);
+    drug.pairedCode = getPairedDataDrugCode(item.c, item.n);
+  }
+
+  if (state.step === 1) {
+    state.prescription = drug;
+    state.step = 2;
+    state.searchQuery = '';
+  } else if (state.step === 2) {
+    state.substitute = drug;
+    state.step = 3;
+    state.searchQuery = '';
+  }
+  render();
+}
+
+function goBack() {
+  if (state.step === 2) {
+    state.step = 1;
+    state.prescription = null;
+    state.searchQuery = '';
+  }
+  render();
+}
+
+function resetAll() {
+  state = { step: 1, prescription: null, substitute: null, searchQuery: '' };
+  render();
+}
+
+function showMore() {
+  state.showCount = (state.showCount || 30) + 30;
+  render();
+}
+
+// ─── Init ───
+(async function init() {
+  try {
+    await loadData();
+    render();
+  } catch(e) {
+    app.innerHTML = `<div class="loading"><p>데이터 로딩 실패: ${e.message}</p></div>`;
+  }
+})();
+</script>
+</body>
+</html>
